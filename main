@@ -1,0 +1,165 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+int TarkistaPIN(char *tiedosto) {
+    FILE *file = fopen(tiedosto, "r");
+    if (file == NULL) {
+        printf("Tiedostoa ei loydy.\n");
+        return 0;
+    }
+
+    char oikeaPIN[5];
+    if (fscanf(file, "%4s", oikeaPIN) != 1) {
+        printf("Virhe tiedoston lukemisessa.\n");
+        fclose(file);
+        return 0;
+    }
+
+    char syotettyPIN[10];
+    printf("Syota PIN-koodi: ");
+    scanf("%9s", syotettyPIN);
+
+
+    syotettyPIN[strcspn(syotettyPIN, "\n")] = '\0';
+
+
+    for (int i = 0; syotettyPIN[i] != '\0'; i++) {
+        if (!isdigit(syotettyPIN[i])) {
+            printf("Virhe: PIN-koodin tulee sisaltaa vain numeroita.\n");
+            fclose(file);
+            return 0;
+        }
+    }
+
+
+    if (strcmp(syotettyPIN, oikeaPIN) == 0) {
+        printf("PIN-koodi oikein.\n");
+        fclose(file);
+        return 1;
+    } else {
+        printf("PIN-koodi vaarin.\n");
+        fclose(file);
+        return 0;
+    }
+}
+
+
+void saldoTarkistus(float saldo) {
+    printf("Saldosi: %.2f euroa\n", saldo);
+}
+
+
+float NostaRahaa(float saldo, int nostoSumma) {
+    if (nostoSumma % 10 != 0 || nostoSumma < 20) {
+        printf("Pankkiautomaatti kayttaa vain 20 ja 50 euron seteleita.\n");
+        return saldo;
+    }
+
+    if (nostoSumma > saldo) {
+        printf("Saldo ei riita.\n");
+        return saldo;
+    }
+
+    if (nostoSumma > 1000) {
+        printf("Nostoraja on 1000 euroa. Et voi nostaa yli 1000 euroa.\n");
+        return saldo;
+    }
+
+    saldo -= nostoSumma;
+    printf("Nostettu %d euroa. Uusi saldosi: %.2f euroa\n", nostoSumma, saldo);
+    return saldo;
+}
+
+void RahojenJakaminen(int nostoSumma) {
+    int seteli50 = 0, seteli20 = 0;
+
+    while (nostoSumma >= 50) {
+        seteli50++;
+        nostoSumma -= 50;
+    }
+
+    while (nostoSumma >= 20) {
+        seteli20++;
+        nostoSumma -= 20;
+    }
+
+    printf("Rahojen jakaminen:\n");
+    if (seteli50 > 0) {
+        printf("%d kpl 50 EUR seteleita\n", seteli50);
+    }
+    if (seteli20 > 0) {
+        printf("%d kpl 20 EUR seteleita\n", seteli20);
+    }
+}
+
+
+void lopeta() {
+    printf("Kiitos kaynnista!\n");
+}
+
+int main(void) {
+    char tilinNumero[10];
+    printf("Syota tilin numero: ");
+    scanf("%s", tilinNumero);
+
+
+    char tiedostoNimi[20];
+    snprintf(tiedostoNimi, sizeof(tiedostoNimi), "%s.acc", tilinNumero);
+
+
+    if (TarkistaPIN(tiedostoNimi)) {
+        FILE *file = fopen(tiedostoNimi, "r");
+        if (file == NULL) {
+            printf("Tiedoston avaus epaonnistui.\n");
+            return 1;
+        }
+
+
+        char oikeaPIN[10];
+        fscanf(file, "%s", oikeaPIN);
+
+        float saldo;
+        fscanf(file, "%f", &saldo);
+
+        fclose(file);
+
+        int valinta;
+        do {
+
+            printf("\nValitse toiminto:\n");
+            printf("1. Tarkista saldo\n");
+            printf("2. Tee nosto\n");
+            printf("3. Lopeta\n");
+
+            scanf("%d", &valinta);
+
+            switch (valinta) {
+                case 1:
+                    saldoTarkistus(saldo);
+                    break;
+                case 2:
+                    printf("Anna nostettava summa (20, 50 euron setelit): ");
+                    int nostoSumma;
+                    scanf("%d", &nostoSumma);
+
+                    if (nostoSumma % 10 == 0 ) {
+                        saldo = NostaRahaa(saldo, nostoSumma);
+                        RahojenJakaminen(nostoSumma);
+                    } else {
+                        printf("Virheellinen summa. Tarkista vaatimukset.\n");
+                    }
+                    break;
+                case 3:
+                    lopeta();
+                    break;
+                default:
+                    printf("Valintasi on vaarin. Yrita uudelleen.\n");
+                    break;
+            }
+        } while (valinta != 3);
+    }
+
+    return 0;
+}
